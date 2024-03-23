@@ -11,6 +11,7 @@ from .exceptions import (
     NUTError,
     NUTLoginError,
     NUTProtocolError,
+    NUTShutdownError,
     map_exception,
 )
 
@@ -28,21 +29,23 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
         """Lock the operation lock and run the function."""
         # pylint: disable=protected-access
         async with self._operation_lock:
+            if self._shutdown:
+                raise NUTShutdownError("Client has been shut down")
             for attempt in range(2):
                 try:
                     if not self._connected:
                         await self._connect()
                     return await func(self, *args, **kwargs)
                 except NUTError:
-                    await self.disconnect()
+                    self.disconnect()
                     raise
                 except RETRY_ERRORS as err:
-                    await self.disconnect()
+                    self.disconnect()
                     if attempt == 1:
                         raise map_exception(err)(str(err)) from err
 
             if not self._persistent:
-                await self.disconnect()
+                self.disconnect()
 
     return cast(WrapFuncType, _async_connected_operation_wrap)
 
@@ -70,6 +73,18 @@ class AIONUTClient:
         self._writer: StreamWriter | None = None
         self._connected: bool = False
         self._operation_lock = asyncio.Lock()
+        self._shutdown = False
+
+    def shutdown(self) -> None:
+        """
+        Shutdown the client.
+
+        This method is irreversible. A new client must be created to reconnect.
+
+        All operations will raise a NUTError after this method is called.
+        """
+        self.disconnect()
+        self._shutdown = True
 
     async def _connect(self) -> None:
         """Connect to the NUT server."""
@@ -96,7 +111,7 @@ class AIONUTClient:
 
             self._connected = True
 
-    async def disconnect(self) -> None:
+    def disconnect(self) -> None:
         """Disconnect from the NUT server."""
         if self._connected and self._writer is not None:
             writer = self._writer

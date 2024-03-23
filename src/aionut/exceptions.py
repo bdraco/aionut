@@ -29,6 +29,10 @@ class NUTValueError(NUTError):
     """Raised when a value error occurs."""
 
 
+class NUTShutdownError(NUTError):
+    """Raised when an operation is attempted on a shutdown client."""
+
+
 RETRY_ERRORS = (ValueError, OSError, TimeoutError)
 
 

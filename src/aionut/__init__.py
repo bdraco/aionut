@@ -10,6 +10,7 @@ from .exceptions import (
     NUTLoginError,
     NUTOSError,
     NUTProtocolError,
+    NUTShutdownError,
     NUTTimeoutError,
     NUTValueError,
 )
@@ -23,4 +24,5 @@ __all__ = [
     "NUTOSError",
     "NUTTimeoutError",
     "NUTValueError",
+    "NUTShutdownError",
 ]
