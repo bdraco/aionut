@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.3.0 (2024-03-23)
+
+### Feature
+
+- Map all expected exceptions to nuterror (#8) ([`e37d276`](https://github.com/bdraco/aionut/commit/e37d276dd4c8ea033d3a55810479e3afb20698d3))
+
 ## v1.2.1 (2024-03-23)
 
 ### Fix
