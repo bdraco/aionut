@@ -1,23 +1,26 @@
 __version__ = "2.0.0"
 
+
 from .client import (
     AIONUTClient,
-    NutCommandError,
+)
+from .exceptions import (
+    NUTCommandError,
     NUTError,
-    NutLoginError,
-    NutOSSError,
+    NUTLoginError,
+    NUTOSError,
     NUTProtocolError,
-    NutTimeoutError,
-    NutValueError,
+    NUTTimeoutError,
+    NUTValueError,
 )
 
 __all__ = [
     "AIONUTClient",
     "NUTError",
     "NUTProtocolError",
-    "NutLoginError",
-    "NutCommandError",
-    "NutOSSError",
-    "NutTimeoutError",
-    "NutValueError",
+    "NUTLoginError",
+    "NUTCommandError",
+    "NUTOSError",
+    "NUTTimeoutError",
+    "NUTValueError",
 ]
