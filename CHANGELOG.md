@@ -1,5 +1,11 @@
 # Changelog
 
+## v2.0.0 (2024-03-23)
+
+### Breaking
+
+- Rename aionutclient to aionutclient (#9) ([`4567df7`](https://github.com/bdraco/aionut/commit/4567df7230c01c2e3a1a9d07fe544e8e63a414af))
+
 ## v1.3.0 (2024-03-23)
 
 ### Feature
