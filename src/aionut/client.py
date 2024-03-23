@@ -10,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
 
-class NUTError(ValueError):
+class NUTError(Exception):
     """Base class for NUT errors."""
 
 
@@ -26,43 +26,35 @@ class NutCommandError(NUTError):
     """Raised when a command fails."""
 
 
-def operation_lock(func: WrapFuncType) -> WrapFuncType:
+RETRY_ERRORS = (ValueError, OSError, TimeoutError)
+
+
+def connected_operation(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
-    async def _async_operation_lock_wrap(
+    async def _async_connected_operation_wrap(
         self: AIONutClient, *args: Any, **kwargs: Any
     ) -> None:
         """Lock the operation lock and run the function."""
         # pylint: disable=protected-access
         async with self._operation_lock:
-            try:
-                return await func(self, *args, **kwargs)
-            except (NUTError, OSError, TimeoutError) as err:
+            for attempt in range(2):
+                try:
+                    if not self._connected:
+                        await self._connect()
+                    return await func(self, *args, **kwargs)
+                except NUTError:
+                    await self.disconnect()
+                    raise
+                except RETRY_ERRORS as err:
+                    await self.disconnect()
+                    if attempt == 1:
+                        raise err
+
+            if not self._persistent:
                 await self.disconnect()
-                raise err
 
-    return cast(WrapFuncType, _async_operation_lock_wrap)
-
-
-def ensure_connected(func: WrapFuncType) -> WrapFuncType:
-    """Define a wrapper to only allow a single operation at a time."""
-
-    async def _async_ensure_connected_wrap(
-        self: AIONutClient, *args: Any, **kwargs: Any
-    ) -> None:
-        """Ensure we are connected to the NUT server."""
-        # pylint: disable=protected-access
-        if not self._connected:
-            await self._connect()
-
-        result = await func(self, *args, **kwargs)
-
-        if not self._persistent:
-            await self.disconnect()
-
-        return result
-
-    return cast(WrapFuncType, _async_ensure_connected_wrap)
+    return cast(WrapFuncType, _async_connected_operation_wrap)
 
 
 class AIONutClient:
@@ -117,8 +109,8 @@ class AIONutClient:
     async def disconnect(self) -> None:
         """Disconnect from the NUT server."""
         if self._connected and self._writer is not None:
-            self._writer.close()
-            await self._writer.wait_closed()
+            writer = self._writer
+            writer.close()
             self._connected = False
             self._writer = None
             self._reader = None
@@ -135,8 +127,6 @@ class AIONutClient:
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
         _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
-        if not response:
-            raise NUTProtocolError("Unexpected EOF")
         if response.startswith(b"ERR"):
             raise NutCommandError(
                 f"Error running command: {response.decode('ascii').strip()}"
@@ -152,8 +142,7 @@ class AIONutClient:
         _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
         return response.decode("ascii")
 
-    @operation_lock
-    @ensure_connected
+    @connected_operation
     async def description(self, ups: str) -> str:
         """Get the description of a UPS."""
         # Send: GET UPSDESC <upsname>
@@ -164,8 +153,7 @@ class AIONutClient:
         _, _, description = response.split(" ", 2)
         return description
 
-    @operation_lock
-    @ensure_connected
+    @connected_operation
     async def list_ups(self) -> dict[str, str]:
         """
         List the available UPSes.
@@ -189,8 +177,7 @@ class AIONutClient:
             if line.startswith("UPS ") and (parts := line.split(" ", 2))
         }
 
-    @operation_lock
-    @ensure_connected
+    @connected_operation
     async def list_vars(self, ups: str) -> dict[str, str]:
         """
         List the available variables for a UPS.
@@ -214,8 +201,7 @@ class AIONutClient:
             if line.startswith("VAR ") and (parts := line.split(" ", 3))
         }
 
-    @operation_lock
-    @ensure_connected
+    @connected_operation
     async def list_commands(self, ups: str) -> set[str]:
         """
         List the available commands for a UPS.
@@ -239,8 +225,7 @@ class AIONutClient:
             if line.startswith("CMD ") and (parts := line.split(" ", 2))
         }
 
-    @operation_lock
-    @ensure_connected
+    @connected_operation
     async def run_command(
         self, ups: str, command: str, param: str | None = None
     ) -> str:
