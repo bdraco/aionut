@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.0.0 (2024-03-23)
+
+### Breaking
+
+- Add shutdown method (#11) ([`67a913f`](https://github.com/bdraco/aionut/commit/67a913f81976f92fcfc242bc7102ff1a39a73990))
+
 ## v3.0.0 (2024-03-23)
 
 ### Breaking
