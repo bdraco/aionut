@@ -19,6 +19,10 @@ class NutLoginError(NUTError):
     """Raised when the login fails."""
 
 
+class NutCommandError(NUTError):
+    """Raised when a command fails."""
+
+
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
@@ -180,3 +184,54 @@ class AIONutClient:
             for line in response.decode("ascii").splitlines()
             if line.startswith("VAR ") and (parts := line.split(" ", 3))
         }
+
+    @operation_lock
+    @ensure_connected
+    async def list_commands(self, ups: str) -> set[str]:
+        """
+        List the available commands for a UPS.
+
+        Returns a list of command names.
+        """
+        # Send: LIST CMD <upsname>
+        # Return: BEGIN LIST CMD <upsname>
+        # CMD <upsname> <cmdname>
+        # ...
+        # END LIST CMD <upsname>
+        if TYPE_CHECKING:
+            assert self._reader is not None
+        self._write(f"LIST CMD {ups}\n")
+        response = await self._reader.readuntil(f"END LIST CMD {ups}\n".encode("ascii"))
+        if not response.startswith(f"BEING LIST CMD {ups}".encode("ascii")):
+            raise NUTProtocolError(f"Unexpected response: {response!r}")
+        return {
+            parts[2].strip('"')
+            for line in response.decode("ascii").splitlines()
+            if line.startswith("CMD ") and (parts := line.split(" ", 2))
+        }
+
+    @operation_lock
+    @ensure_connected
+    async def run_command(
+        self, ups: str, command: str, param: str | None = None
+    ) -> str:
+        """
+        Run a command for a UPS.
+
+        Returns the response from the command.
+        """
+        # Send: INSTCMD <upsname> <cmdname> [<cmdparam>]
+        # Return: OK <response>
+        #         ERR <error>
+        if TYPE_CHECKING:
+            assert self._reader is not None
+        if param is not None:
+            self._write(f"INSTCMD {ups} {command} {param}\n")
+        else:
+            self._write(f"INSTCMD {ups} {command}\n")
+        response = await self._reader.readline()
+        if not response.startswith(b"OK"):
+            raise NutCommandError(
+                f"Error running command: {response.decode('ascii').strip()}"
+            )
+        return response.decode("ascii").strip()
