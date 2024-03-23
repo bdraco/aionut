@@ -130,11 +130,11 @@ class AIONutClient:
         if TYPE_CHECKING:
             assert self._reader is not None
         outgoing = data.encode("ascii")
-        _LOGGER.debug("Sending: %s", outgoing)
+        _LOGGER.debug("[%s:%s] Sending: %s", self.host, self.port, outgoing)
         self._writer.write(outgoing)
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
-        _LOGGER.debug("Received: %s", response)
+        _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
         if not response:
             raise NUTProtocolError("Unexpected EOF")
         if response.startswith(b"ERR"):
@@ -149,7 +149,7 @@ class AIONutClient:
             assert self._reader is not None
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readuntil(data.encode("ascii"))
-        _LOGGER.debug("Received: %s", response)
+        _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
         return response.decode("ascii")
 
     @operation_lock
