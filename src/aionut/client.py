@@ -15,6 +15,10 @@ class NUTProtocolError(NUTError):
     """Raised when an unexpected response is received from the NUT server."""
 
 
+class NutLoginError(NUTError):
+    """Raised when the login fails."""
+
+
 def operation_lock(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
@@ -69,6 +73,8 @@ class AIONutClient:
         """Initialize the NUT client."""
         self.host = host
         self.port = port
+        self.username = username
+        self.password = password
         self._persistent = persistent
         self._reader: StreamReader | None = None
         self._writer: StreamWriter | None = None
@@ -81,6 +87,18 @@ class AIONutClient:
             self._reader, self._writer = await asyncio.open_connection(
                 self.host, self.port
             )
+            if self.username is not None:
+                self._write(f"USERNAME {self.username}\n")
+                response = await self._reader.readline()
+                if not response.startswith(b"OK"):
+                    raise NutLoginError(f"Unexpected response: {response!r}")
+
+            if self.password is not None:
+                self._write(f"PASSWORD {self.password}\n")
+                response = await self._reader.readline()
+                if not response.startswith(b"OK"):
+                    raise NutLoginError(f"Unexpected response: {response!r}")
+
             self._connected = True
 
     async def disconnect(self) -> None:
