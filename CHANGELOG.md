@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.0 (2024-03-23)
+
+### Feature
+
+- Auto reconnection on drop (#6) ([`10eeee9`](https://github.com/bdraco/aionut/commit/10eeee908498c5956c6b0633b1fb02e8c42f2229))
+
 ## v1.1.0 (2024-03-23)
 
 ### Feature
