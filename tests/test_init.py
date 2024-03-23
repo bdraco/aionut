@@ -1,7 +1,7 @@
-from aionut import AIONutClient, NUTError, NUTProtocolError
+from aionut import AIONUTClient, NUTError, NUTProtocolError
 
 
 def test_imports():
-    assert AIONutClient()
+    assert AIONUTClient()
     assert NUTError()
     assert NUTProtocolError()

@@ -56,7 +56,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
 
     async def _async_connected_operation_wrap(
-        self: AIONutClient, *args: Any, **kwargs: Any
+        self: AIONUTClient, *args: Any, **kwargs: Any
     ) -> None:
         """Lock the operation lock and run the function."""
         # pylint: disable=protected-access
@@ -80,7 +80,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
     return cast(WrapFuncType, _async_connected_operation_wrap)
 
 
-class AIONutClient:
+class AIONUTClient:
     """A client for the NUT (Network UPS Tools) protocol."""
 
     def __init__(
