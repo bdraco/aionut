@@ -114,7 +114,7 @@ class AIONutClient:
         """Write data to the NUT server."""
         if TYPE_CHECKING:
             assert self._writer is not None
-        self._writer.write(data.encode())
+        self._writer.write(data.encode("ascii"))
 
     @operation_lock
     @ensure_connected
@@ -128,7 +128,7 @@ class AIONutClient:
         response = await self._reader.readline()
         if not response.startswith(b"UPSDESC"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
-        _, _, description = response.decode().split(" ", 2)
+        _, _, description = response.decode("ascii").split(" ", 2)
         return description
 
     @operation_lock
@@ -152,7 +152,7 @@ class AIONutClient:
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[1]: parts[2].strip('"')
-            for line in response.decode().splitlines()
+            for line in response.decode("ascii").splitlines()
             if line.startswith("UPS ") and (parts := line.split(" ", 2))
         }
 
@@ -172,11 +172,11 @@ class AIONutClient:
         if TYPE_CHECKING:
             assert self._reader is not None
         self._write(f"LIST VAR {ups}\n")
-        response = await self._reader.readuntil(f"END LIST VAR {ups}\n".encode())
-        if not response.startswith(f"BEING LIST VAR {ups}".encode()):
+        response = await self._reader.readuntil(f"END LIST VAR {ups}\n".encode("ascii"))
+        if not response.startswith(f"BEING LIST VAR {ups}".encode("ascii")):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[2]: parts[3].strip('"')
-            for line in response.decode().splitlines()
+            for line in response.decode("ascii").splitlines()
             if line.startswith("VAR ") and (parts := line.split(" ", 3))
         }
