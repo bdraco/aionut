@@ -87,7 +87,7 @@ jobs:
 
       # On main branch: actual PSR + upload to PyPI & GitHub
       - name: Release
-        uses: python-semantic-release/python-semantic-release@v9.3.0
+        uses: bluetooth-devices/python-semantic-release@311
         id: release
         if: github.ref_name == 'main'
         with:
