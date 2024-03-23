@@ -1,7 +1,7 @@
 __version__ = "1.3.0"
 
 from .client import (
-    AIONutClient,
+    AIONUTClient,
     NutCommandError,
     NUTError,
     NutLoginError,
@@ -12,7 +12,7 @@ from .client import (
 )
 
 __all__ = [
-    "AIONutClient",
+    "AIONUTClient",
     "NUTError",
     "NUTProtocolError",
     "NutLoginError",
