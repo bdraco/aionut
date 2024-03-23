@@ -109,8 +109,8 @@ class AIONutClient:
     async def disconnect(self) -> None:
         """Disconnect from the NUT server."""
         if self._connected and self._writer is not None:
-            self._writer.close()
-            await self._writer.wait_closed()
+            writer = self._writer
+            writer.close()
             self._connected = False
             self._writer = None
             self._reader = None
