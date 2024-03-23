@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.2.1 (2024-03-23)
+
+### Fix
+
+- Protocol format and error checking (#7) ([`4209416`](https://github.com/bdraco/aionut/commit/4209416670fb0d21f87592d2ada9e5422f591622))
+
 ## v1.2.0 (2024-03-23)
 
 ### Feature
