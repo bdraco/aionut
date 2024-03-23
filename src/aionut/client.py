@@ -81,7 +81,7 @@ class AIONUTClient:
 
         This method is irreversible. A new client must be created to reconnect.
 
-        All operations will raise a NUTError after this method is called.
+        All operations will raise a NUTShutdownError after this method is called.
         """
         self.disconnect()
         self._shutdown = True
