@@ -34,7 +34,7 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
         async with self._operation_lock:
             try:
                 return await func(self, *args, **kwargs)
-            except (NUTError, OSError) as err:
+            except (NUTError, OSError, TimeoutError) as err:
                 await self.disconnect()
                 raise err
 
@@ -77,6 +77,7 @@ class AIONutClient:
         """Initialize the NUT client."""
         self.host = host
         self.port = port
+        self.timeout = timeout
         self.username = username
         self.password = password
         self._persistent = persistent
@@ -88,20 +89,25 @@ class AIONutClient:
     async def _connect(self) -> None:
         """Connect to the NUT server."""
         if not self._connected:
-            self._reader, self._writer = await asyncio.open_connection(
-                self.host, self.port
-            )
+            async with asyncio.timeout(self.timeout):
+                self._reader, self._writer = await asyncio.open_connection(
+                    self.host, self.port
+                )
             if self.username is not None:
-                self._write(f"USERNAME {self.username}\n")
-                response = await self._reader.readline()
-                if not response.startswith(b"OK"):
-                    raise NutLoginError(f"Unexpected response: {response!r}")
+                try:
+                    response = await self._write_command_or_raise(
+                        f"USERNAME {self.username}\n"
+                    )
+                except NutCommandError as err:
+                    raise NutLoginError(f"Error setting username: {response}") from err
 
             if self.password is not None:
-                self._write(f"PASSWORD {self.password}\n")
-                response = await self._reader.readline()
-                if not response.startswith(b"OK"):
-                    raise NutLoginError(f"Unexpected response: {response!r}")
+                try:
+                    response = await self._write_command_or_raise(
+                        f"PASSWORD {self.password}\n"
+                    )
+                except NutCommandError as err:
+                    raise NutLoginError(f"Error setting password: {response}") from err
 
             self._connected = True
 
@@ -114,11 +120,22 @@ class AIONutClient:
             self._writer = None
             self._reader = None
 
-    def _write(self, data: str) -> None:
-        """Write data to the NUT server."""
+    async def _write_command_or_raise(self, data: str) -> str:
+        """Write a command, read a response from the NUT server or raise an error."""
         if TYPE_CHECKING:
             assert self._writer is not None
+        if TYPE_CHECKING:
+            assert self._reader is not None
         self._writer.write(data.encode("ascii"))
+        async with asyncio.timeout(self.timeout):
+            response = await self._reader.readline()
+        if not response:
+            raise NUTProtocolError("Unexpected EOF")
+        if response.startswith(b"ERR"):
+            raise NutCommandError(
+                f"Error running command: {response.decode('ascii').strip()}"
+            )
+        return response.decode("ascii")
 
     @operation_lock
     @ensure_connected
@@ -126,13 +143,10 @@ class AIONutClient:
         """Get the description of a UPS."""
         # Send: GET UPSDESC <upsname>
         # Return: UPSDESC <upsname> <description>
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        self._write(f"GET UPSDESC {ups}\n")
-        response = await self._reader.readline()
-        if not response.startswith(b"UPSDESC"):
+        response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n")
+        if not response.startswith("UPSDESC"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
-        _, _, description = response.decode("ascii").split(" ", 2)
+        _, _, description = response.split(" ", 2)
         return description
 
     @operation_lock
@@ -150,8 +164,9 @@ class AIONutClient:
         # END LIST UPS
         if TYPE_CHECKING:
             assert self._reader is not None
-        self._write("LIST UPS\n")
-        response = await self._reader.readuntil(b"END LIST UPS\n")
+        await self._write_command_or_raise("LIST UPS\n")
+        async with asyncio.timeout(self.timeout):
+            response = await self._reader.readuntil(b"END LIST UPS\n")
         if not response.startswith(b"UPS"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
@@ -175,9 +190,12 @@ class AIONutClient:
         # END LIST VAR <upsname>
         if TYPE_CHECKING:
             assert self._reader is not None
-        self._write(f"LIST VAR {ups}\n")
-        response = await self._reader.readuntil(f"END LIST VAR {ups}\n".encode("ascii"))
-        if not response.startswith(f"BEING LIST VAR {ups}".encode("ascii")):
+        await self._write_command_or_raise(f"LIST VAR {ups}\n")
+        async with asyncio.timeout(self.timeout):
+            response = await self._reader.readuntil(
+                f"END LIST VAR {ups}\n".encode("ascii")
+            )
+        if not response.startswith(f"BEGIN LIST VAR {ups}".encode("ascii")):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[2]: parts[3].strip('"')
@@ -200,8 +218,11 @@ class AIONutClient:
         # END LIST CMD <upsname>
         if TYPE_CHECKING:
             assert self._reader is not None
-        self._write(f"LIST CMD {ups}\n")
-        response = await self._reader.readuntil(f"END LIST CMD {ups}\n".encode("ascii"))
+        await self._write_command_or_raise(f"LIST CMD {ups}\n")
+        async with asyncio.timeout(self.timeout):
+            response = await self._reader.readuntil(
+                f"END LIST CMD {ups}\n".encode("ascii")
+            )
         if not response.startswith(f"BEING LIST CMD {ups}".encode("ascii")):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
@@ -225,13 +246,8 @@ class AIONutClient:
         #         ERR <error>
         if TYPE_CHECKING:
             assert self._reader is not None
-        if param is not None:
-            self._write(f"INSTCMD {ups} {command} {param}\n")
-        else:
-            self._write(f"INSTCMD {ups} {command}\n")
-        response = await self._reader.readline()
-        if not response.startswith(b"OK"):
-            raise NutCommandError(
-                f"Error running command: {response.decode('ascii').strip()}"
-            )
-        return response.decode("ascii").strip()
+        command = f"INSTCMD {ups} {command}"
+        if param:
+            command = f"{command} {param}"
+        response = await self._write_command_or_raise(f"{command}\n")
+        return response.strip()
