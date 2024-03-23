@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aionut"
-version = "2.0.0"
+version = "3.0.0"
 description = "Asyncio Network UPS Tools"
 authors = ["J. Nick Koston <nick@koston.org>"]
 license = "Apache Software License 2.0"

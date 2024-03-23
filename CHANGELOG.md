@@ -1,5 +1,11 @@
 # Changelog
 
+## v3.0.0 (2024-03-23)
+
+### Breaking
+
+- Rename exceptions to all start with nut (#10) ([`8fac8bc`](https://github.com/bdraco/aionut/commit/8fac8bc0d27ed5b57960b9bcf1a47e199ed13975))
+
 ## v2.0.0 (2024-03-23)
 
 ### Breaking
