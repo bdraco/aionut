@@ -5,51 +5,18 @@ import logging
 from asyncio.streams import StreamReader, StreamWriter
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
 
+from .exceptions import (
+    RETRY_ERRORS,
+    NUTCommandError,
+    NUTError,
+    NUTLoginError,
+    NUTProtocolError,
+    map_exception,
+)
+
 _LOGGER = logging.getLogger(__name__)
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
-
-
-class NUTError(Exception):
-    """Base class for NUT errors."""
-
-
-class NUTProtocolError(NUTError):
-    """Raised when an unexpected response is received from the NUT server."""
-
-
-class NutLoginError(NUTError):
-    """Raised when the login fails."""
-
-
-class NutCommandError(NUTError):
-    """Raised when a command fails."""
-
-
-class NutOSSError(NUTError):
-    """Raised when an OS error occurs."""
-
-
-class NutTimeoutError(NUTError):
-    """Raised when a timeout occurs."""
-
-
-class NutValueError(NUTError):
-    """Raised when a value error occurs."""
-
-
-RETRY_ERRORS = (ValueError, OSError, TimeoutError)
-
-
-def map_exception(exc: Exception) -> type[NUTError]:
-    """Map an exception to a NUTError."""
-    if isinstance(exc, ValueError):
-        return NutValueError
-    if isinstance(exc, OSError):
-        return NutOSSError
-    if isinstance(exc, TimeoutError):
-        return NutTimeoutError
-    return NUTError
 
 
 def connected_operation(func: WrapFuncType) -> WrapFuncType:
@@ -116,16 +83,16 @@ class AIONUTClient:
                     response = await self._write_command_or_raise(
                         f"USERNAME {self.username}\n"
                     )
-                except NutCommandError as err:
-                    raise NutLoginError(f"Error setting username: {response}") from err
+                except NUTCommandError as err:
+                    raise NUTLoginError(f"Error setting username: {response}") from err
 
             if self.password is not None:
                 try:
                     response = await self._write_command_or_raise(
                         f"PASSWORD {self.password}\n"
                     )
-                except NutCommandError as err:
-                    raise NutLoginError(f"Error setting password: {response}") from err
+                except NUTCommandError as err:
+                    raise NUTLoginError(f"Error setting password: {response}") from err
 
             self._connected = True
 
@@ -151,7 +118,7 @@ class AIONUTClient:
             response = await self._reader.readline()
         _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
         if response.startswith(b"ERR"):
-            raise NutCommandError(
+            raise NUTCommandError(
                 f"Error running command: {response.decode('ascii').strip()}"
             )
         return response.decode("ascii")
