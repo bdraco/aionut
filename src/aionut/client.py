@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from asyncio.streams import StreamReader, StreamWriter
 from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
+
+_LOGGER = logging.getLogger(__name__)
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
@@ -126,15 +129,27 @@ class AIONutClient:
             assert self._writer is not None
         if TYPE_CHECKING:
             assert self._reader is not None
-        self._writer.write(data.encode("ascii"))
+        outgoing = data.encode("ascii")
+        _LOGGER.debug("Sending: %s", outgoing)
+        self._writer.write(outgoing)
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
+        _LOGGER.debug("Received: %s", response)
         if not response:
             raise NUTProtocolError("Unexpected EOF")
         if response.startswith(b"ERR"):
             raise NutCommandError(
                 f"Error running command: {response.decode('ascii').strip()}"
             )
+        return response.decode("ascii")
+
+    async def _read_util(self, data: str) -> str:
+        """Read until the end of a response."""
+        if TYPE_CHECKING:
+            assert self._reader is not None
+        async with asyncio.timeout(self.timeout):
+            response = await self._reader.readuntil(data.encode("ascii"))
+        _LOGGER.debug("Received: %s", response)
         return response.decode("ascii")
 
     @operation_lock
@@ -165,13 +180,12 @@ class AIONutClient:
         if TYPE_CHECKING:
             assert self._reader is not None
         await self._write_command_or_raise("LIST UPS\n")
-        async with asyncio.timeout(self.timeout):
-            response = await self._reader.readuntil(b"END LIST UPS\n")
-        if not response.startswith(b"UPS"):
+        response = await self._read_util("END LIST UPS\n")
+        if not response.startswith("UPS"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[1]: parts[2].strip('"')
-            for line in response.decode("ascii").splitlines()
+            for line in response.splitlines()
             if line.startswith("UPS ") and (parts := line.split(" ", 2))
         }
 
@@ -191,15 +205,12 @@ class AIONutClient:
         if TYPE_CHECKING:
             assert self._reader is not None
         await self._write_command_or_raise(f"LIST VAR {ups}\n")
-        async with asyncio.timeout(self.timeout):
-            response = await self._reader.readuntil(
-                f"END LIST VAR {ups}\n".encode("ascii")
-            )
-        if not response.startswith(f"BEGIN LIST VAR {ups}".encode("ascii")):
+        response = await self._read_util(f"END LIST VAR {ups}\n")
+        if not response.startswith(f"BEGIN LIST VAR {ups}"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[2]: parts[3].strip('"')
-            for line in response.decode("ascii").splitlines()
+            for line in response.splitlines()
             if line.startswith("VAR ") and (parts := line.split(" ", 3))
         }
 
@@ -219,15 +230,12 @@ class AIONutClient:
         if TYPE_CHECKING:
             assert self._reader is not None
         await self._write_command_or_raise(f"LIST CMD {ups}\n")
-        async with asyncio.timeout(self.timeout):
-            response = await self._reader.readuntil(
-                f"END LIST CMD {ups}\n".encode("ascii")
-            )
-        if not response.startswith(f"BEING LIST CMD {ups}".encode("ascii")):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
+        response = await self._read_util(f"END LIST CMD {ups}\n")
+        if not response.startswith(f"BEGIN LIST CMD {ups}"):
+            raise NUTProtocolError(f"Unexpected response: {response}")
         return {
             parts[2].strip('"')
-            for line in response.decode("ascii").splitlines()
+            for line in response.splitlines()
             if line.startswith("CMD ") and (parts := line.split(" ", 2))
         }
 
