@@ -26,7 +26,7 @@ def operation_lock(func: WrapFuncType) -> WrapFuncType:
         async with self._operation_lock:
             try:
                 return await func(self, *args, **kwargs)
-            except NUTError as err:
+            except (NUTError, OSError) as err:
                 await self.disconnect()
                 raise err
 
