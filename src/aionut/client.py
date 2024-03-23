@@ -167,7 +167,9 @@ class AIONutClient:
         # END LIST UPS
         if TYPE_CHECKING:
             assert self._reader is not None
-        await self._write_command_or_raise("LIST UPS\n")
+        response = await self._write_command_or_raise("LIST UPS\n")
+        if not response.startswith("BEGIN LIST UPS"):
+            raise NUTProtocolError(f"Unexpected response: {response!r}")
         response = await self._read_util("END LIST UPS\n")
         if not response.startswith("UPS"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
@@ -191,10 +193,10 @@ class AIONutClient:
         # END LIST VAR <upsname>
         if TYPE_CHECKING:
             assert self._reader is not None
-        await self._write_command_or_raise(f"LIST VAR {ups}\n")
-        response = await self._read_util(f"END LIST VAR {ups}\n")
+        response = await self._write_command_or_raise(f"LIST VAR {ups}\n")
         if not response.startswith(f"BEGIN LIST VAR {ups}"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
+        response = await self._read_util(f"END LIST VAR {ups}\n")
         return {
             parts[2]: parts[3].strip('"')
             for line in response.splitlines()
@@ -215,10 +217,10 @@ class AIONutClient:
         # END LIST CMD <upsname>
         if TYPE_CHECKING:
             assert self._reader is not None
-        await self._write_command_or_raise(f"LIST CMD {ups}\n")
-        response = await self._read_util(f"END LIST CMD {ups}\n")
+        response = await self._write_command_or_raise(f"LIST CMD {ups}\n")
         if not response.startswith(f"BEGIN LIST CMD {ups}"):
             raise NUTProtocolError(f"Unexpected response: {response}")
+        response = await self._read_util(f"END LIST CMD {ups}\n")
         return {
             parts[2].strip('"')
             for line in response.splitlines()
