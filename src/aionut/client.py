@@ -26,7 +26,30 @@ class NutCommandError(NUTError):
     """Raised when a command fails."""
 
 
+class NutOSSError(NUTError):
+    """Raised when an OS error occurs."""
+
+
+class NutTimeoutError(NUTError):
+    """Raised when a timeout occurs."""
+
+
+class NutValueError(NUTError):
+    """Raised when a value error occurs."""
+
+
 RETRY_ERRORS = (ValueError, OSError, TimeoutError)
+
+
+def map_exception(exc: Exception) -> type[NUTError]:
+    """Map an exception to a NUTError."""
+    if isinstance(exc, ValueError):
+        return NutValueError
+    if isinstance(exc, OSError):
+        return NutOSSError
+    if isinstance(exc, TimeoutError):
+        return NutTimeoutError
+    return NUTError
 
 
 def connected_operation(func: WrapFuncType) -> WrapFuncType:
@@ -49,7 +72,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                 except RETRY_ERRORS as err:
                     await self.disconnect()
                     if attempt == 1:
-                        raise err
+                        raise map_exception(err)(str(err)) from err
 
             if not self._persistent:
                 await self.disconnect()
