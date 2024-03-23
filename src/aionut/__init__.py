@@ -5,7 +5,10 @@ from .client import (
     NutCommandError,
     NUTError,
     NutLoginError,
+    NutOSSError,
     NUTProtocolError,
+    NutTimeoutError,
+    NutValueError,
 )
 
 __all__ = [
@@ -14,4 +17,7 @@ __all__ = [
     "NUTProtocolError",
     "NutLoginError",
     "NutCommandError",
+    "NutOSSError",
+    "NutTimeoutError",
+    "NutValueError",
 ]
