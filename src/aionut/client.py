@@ -191,7 +191,7 @@ class AIONutClient:
         """
         List the available commands for a UPS.
 
-        Returns a list of command names.
+        Returns a set of command names.
         """
         # Send: LIST CMD <upsname>
         # Return: BEGIN LIST CMD <upsname>
