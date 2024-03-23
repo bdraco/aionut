@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.1.0 (2024-03-23)
+
+### Feature
+
+- Improve debug logging (#5) ([`3df5c87`](https://github.com/bdraco/aionut/commit/3df5c87d33634399c2726d57e5ed3ff567ae653a))
+
 ## v1.0.0 (2024-03-23)
 
 ### Feature
