@@ -19,6 +19,8 @@ _LOGGER = logging.getLogger(__name__)
 
 WrapFuncType = TypeVar("WrapFuncType", bound=Callable[..., Any])
 
+_REDACT_COMMANDS = {"USERNAME", "PASSWORD"}
+
 
 def connected_operation(func: WrapFuncType) -> WrapFuncType:
     """Define a wrapper to only allow a single operation at a time."""
@@ -94,20 +96,10 @@ class AIONUTClient:
                     self.host, self.port
                 )
             if self.username is not None:
-                try:
-                    response = await self._write_command_or_raise(
-                        f"USERNAME {self.username}\n"
-                    )
-                except NUTCommandError as err:
-                    raise NUTLoginError(f"Error setting username: {response}") from err
+                await self._write_command_or_raise(f"USERNAME {self.username}\n")
 
             if self.password is not None:
-                try:
-                    response = await self._write_command_or_raise(
-                        f"PASSWORD {self.password}\n"
-                    )
-                except NUTCommandError as err:
-                    raise NUTLoginError(f"Error setting password: {response}") from err
+                await self._write_command_or_raise(f"PASSWORD {self.password}\n")
 
             self._connected = True
 
@@ -132,11 +124,16 @@ class AIONUTClient:
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
         _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
+        decoded = response.decode("ascii")
         if response.startswith(b"ERR"):
-            raise NUTCommandError(
-                f"Error running command: {response.decode('ascii').strip()}"
+            command = data.split(" ", 1)[0]
+            redacted_command = command if command in _REDACT_COMMANDS else data
+            error = decoded.strip()
+            cls = (
+                NUTLoginError if response.startswith(b"ERR ACCESS") else NUTCommandError
             )
-        return response.decode("ascii")
+            raise cls(f"Error running: {redacted_command.strip()}: {error}")
+        return decoded
 
     async def _read_util(self, data: str) -> str:
         """Read until the end of a response."""
