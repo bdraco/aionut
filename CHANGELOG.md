@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.2.0 (2024-03-24)
+
+### Feature
+
+- Auto retry on dropped connection (#13) ([`6f94016`](https://github.com/bdraco/aionut/commit/6f940165a6e70f329963fd94efe5c686d4065af8))
+
 ## v4.1.0 (2024-03-24)
 
 ### Feature
