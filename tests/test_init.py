@@ -50,15 +50,31 @@ async def test_list_ups():
     close_server()
 
 
+@pytest.mark.asyncio
+async def test_list_ups_connection_drop():
+    port, close_server = await make_fake_nut_server(drop_first_connection=True)
+    client = AIONUTClient(host="localhost", port=port, username="test", password="")
+    upses = await client.list_ups()
+    assert upses == {"test": "bob"}
+    close_server()
+
+
 async def make_fake_nut_server(
     bad_username: bool = False,
     bad_password: bool = False,
     late_auth_failed: bool = False,
+    drop_first_connection: bool = False,
 ) -> tuple[int, Callable[[], None]]:
 
+    dropped_connection = False
+
     async def handle_client(reader: StreamReader, writer: StreamWriter) -> None:
+        nonlocal dropped_connection
         while True:
             command = await reader.readline()
+            if drop_first_connection and not dropped_connection:
+                dropped_connection = True
+                break
             if command.startswith(b"USERNAME"):
                 if bad_username:
                     writer.write(b"ERR ACCESS-DENIED\n")
@@ -78,6 +94,8 @@ async def make_fake_nut_server(
                 writer.write(b"END LIST UPS\n")
             else:
                 writer.write(b"OK\n")
+
+        writer.close()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", 0))

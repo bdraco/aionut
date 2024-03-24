@@ -6,6 +6,7 @@ from .client import (
 )
 from .exceptions import (
     NUTCommandError,
+    NUTConnectionClosedError,
     NUTError,
     NUTLoginError,
     NUTOSError,
@@ -25,4 +26,5 @@ __all__ = [
     "NUTTimeoutError",
     "NUTValueError",
     "NUTShutdownError",
+    "NUTConnectionClosedError",
 ]

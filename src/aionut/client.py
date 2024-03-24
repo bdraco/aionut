@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, TypeVar, cast
 from .exceptions import (
     RETRY_ERRORS,
     NUTCommandError,
+    NUTConnectionClosedError,
     NUTError,
     NUTLoginError,
     NUTProtocolError,
@@ -38,10 +39,21 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                     if not self._connected:
                         await self._connect()
                     return await func(self, *args, **kwargs)
-                except NUTError:
+                except NUTConnectionClosedError:
+                    self.disconnect()
+                    if attempt == 1:
+                        raise
+                    _LOGGER.debug(
+                        "[%s:%s] Connection closed, retrying", self.host, self.port
+                    )
+                except NUTError as ex:
+                    _LOGGER.debug("[%s:%s] NUTError: %s", self.host, self.port, ex)
                     self.disconnect()
                     raise
                 except RETRY_ERRORS as err:
+                    _LOGGER.debug(
+                        "[%s:%s] Error: %s, retrying", self.host, self.port, err
+                    )
                     self.disconnect()
                     if attempt == 1:
                         raise map_exception(err)(str(err)) from err
@@ -124,6 +136,8 @@ class AIONUTClient:
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
         _LOGGER.debug("[%s:%s] Received: %s", self.host, self.port, response)
+        if response == b"":
+            raise NUTConnectionClosedError("Connection closed by server")
         decoded = response.decode("ascii")
         if response.startswith(b"ERR"):
             command = data.split(" ", 1)[0]
@@ -151,7 +165,7 @@ class AIONUTClient:
         # Return: UPSDESC <upsname> <description>
         response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n")
         if not response.startswith("UPSDESC"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
+            raise NUTProtocolError(f"Unexpected response: {response}")
         _, _, description = response.split(" ", 2)
         return description
 
@@ -197,7 +211,7 @@ class AIONUTClient:
             assert self._reader is not None
         response = await self._write_command_or_raise(f"LIST VAR {ups}\n")
         if not response.startswith(f"BEGIN LIST VAR {ups}"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
+            raise NUTProtocolError(f"Unexpected response: {response}")
         response = await self._read_util(f"END LIST VAR {ups}\n")
         return {
             parts[2]: parts[3].strip('"')
