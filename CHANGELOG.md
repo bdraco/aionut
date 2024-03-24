@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.1.0 (2024-03-24)
+
+### Feature
+
+- Improve login error handling (#12) ([`c60a8b0`](https://github.com/bdraco/aionut/commit/c60a8b04f4e1b4341a8fcf1d60a8b5a12d6cb82a))
+
 ## v4.0.0 (2024-03-23)
 
 ### Breaking
