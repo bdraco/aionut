@@ -30,7 +30,7 @@ class NUTValueError(NUTError):
 
 
 class NUTShutdownError(NUTError):
-    """Raised when an operation is attempted on a shutdown client."""
+    """Raised when the client is already shutdown."""
 
 
 RETRY_ERRORS = (ValueError, OSError, TimeoutError)
@@ -38,10 +38,10 @@ RETRY_ERRORS = (ValueError, OSError, TimeoutError)
 
 def map_exception(exc: Exception) -> type[NUTError]:
     """Map an exception to a NUTError."""
+    if isinstance(exc, TimeoutError):
+        return NUTTimeoutError
     if isinstance(exc, ValueError):
         return NUTValueError
     if isinstance(exc, OSError):
         return NUTOSError
-    if isinstance(exc, TimeoutError):
-        return NUTTimeoutError
     return NUTError
