@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.2.1 (2024-03-24)
+
+### Fix
+
+- Only log retry error if we are going to retry (#15) ([`ad644d7`](https://github.com/bdraco/aionut/commit/ad644d7139ceb0657d5551eb15f701446e9923d4))
+
 ## v4.2.0 (2024-03-24)
 
 ### Feature
