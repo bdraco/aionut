@@ -51,12 +51,12 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                     self.disconnect()
                     raise
                 except RETRY_ERRORS as err:
-                    _LOGGER.debug(
-                        "[%s:%s] Error: %s, retrying", self.host, self.port, err
-                    )
                     self.disconnect()
                     if attempt == 1:
                         raise map_exception(err)(str(err)) from err
+                    _LOGGER.debug(
+                        "[%s:%s] Error: %s, retrying", self.host, self.port, err
+                    )
 
             if not self._persistent:
                 self.disconnect()
