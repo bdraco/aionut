@@ -33,6 +33,10 @@ class NUTShutdownError(NUTError):
     """Raised when the client is already shutdown."""
 
 
+class NUTConnectionClosedError(NUTError):
+    """Raised when the connection is closed."""
+
+
 RETRY_ERRORS = (ValueError, OSError, TimeoutError)
 
 
