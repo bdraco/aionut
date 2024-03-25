@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.3.0 (2024-03-25)
+
+### Feature
+
+- Improve handling of invalid commands (#16) ([`9e0d12f`](https://github.com/bdraco/aionut/commit/9e0d12fac0632bb1587fbf821033257f54517810))
+
 ## v4.2.1 (2024-03-24)
 
 ### Fix
