@@ -119,18 +119,17 @@ class AIONUTClient:
 
     async def _connect(self) -> None:
         """Connect to the NUT server."""
-        if not self._connected:
-            async with asyncio.timeout(self.timeout):
-                self._reader, self._writer = await asyncio.open_connection(
-                    self.host, self.port
-                )
-            if self.username is not None:
-                await self._write_command_or_raise(f"USERNAME {self.username}\n")
+        async with asyncio.timeout(self.timeout):
+            self._reader, self._writer = await asyncio.open_connection(
+                self.host, self.port
+            )
+        if self.username is not None:
+            await self._write_command_or_raise(f"USERNAME {self.username}\n")
 
-            if self.password is not None:
-                await self._write_command_or_raise(f"PASSWORD {self.password}\n")
+        if self.password is not None:
+            await self._write_command_or_raise(f"PASSWORD {self.password}\n")
 
-            self._connected = True
+        self._connected = True
 
     def disconnect(self) -> None:
         """Disconnect from the NUT server."""
