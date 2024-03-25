@@ -138,6 +138,7 @@ async def test_run_command():
         await client.run_command("test", "invalid")
 
     assert await client.run_command("test", "valid") == "OK"
+    assert await client.run_command("test", "param", "param") == "OK"
 
 
 @pytest.mark.asyncio
@@ -216,10 +217,12 @@ async def make_fake_nut_server(
                 writer.write(b"ERR UNKNOWN-COMMAND\n")
             elif command.startswith(b"INSTCMD test valid"):
                 writer.write(b"OK\n")
+            elif command.startswith(b"INSTCMD test param param"):
+                writer.write(b"OK\n")
             elif command.startswith(b"GET UPSDESC test"):
                 writer.write(b'UPSDESC test "demo ups"\n')
             else:
-                writer.write(b"OK\n")
+                writer.write(b"ERR\n")
 
         writer.close()
 
