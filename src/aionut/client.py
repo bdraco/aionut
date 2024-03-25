@@ -140,7 +140,9 @@ class AIONUTClient:
             self._writer = None
             self._reader = None
 
-    async def _write_command_or_raise(self, data: str) -> str:
+    async def _write_command_or_raise(
+        self, data: str, expected_starts_with: str | None = None
+    ) -> str:
         """Write a command, read a response from the NUT server or raise an error."""
         if TYPE_CHECKING:
             assert self._writer is not None
@@ -163,6 +165,10 @@ class AIONUTClient:
                 NUTLoginError if response.startswith(b"ERR ACCESS") else NUTCommandError
             )
             raise cls(f"Error running: {redacted_command.strip()}: {error}")
+        if expected_starts_with is not None and not decoded.startswith(
+            expected_starts_with
+        ):
+            raise NUTProtocolError(f"Unexpected response: {decoded!r}")
         return decoded
 
     async def _read_util(self, data: str) -> str:
@@ -179,9 +185,7 @@ class AIONUTClient:
         """Get the description of a UPS."""
         # Send: GET UPSDESC <upsname>
         # Return: UPSDESC <upsname> <description>
-        response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n")
-        if not response.startswith("UPSDESC"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n", "UPSDESC")
         _, _, description = response.split(" ", 2)
         return description.strip('\n"')
 
@@ -197,11 +201,7 @@ class AIONUTClient:
         # UPS <upsname> "<description>"
         # ...
         # END LIST UPS
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise("LIST UPS\n")
-        if not response.startswith("BEGIN LIST UPS"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
+        await self._write_command_or_raise("LIST UPS\n", "BEGIN LIST UPS")
         response = await self._read_util("END LIST UPS\n")
         return {
             parts[1]: parts[2].strip('"')
@@ -221,11 +221,7 @@ class AIONUTClient:
         # VAR <upsname> <varname> "<value>"
         # ...
         # END LIST VAR <upsname>
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise(f"LIST VAR {ups}\n")
-        if not response.startswith(f"BEGIN LIST VAR {ups}"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        await self._write_command_or_raise(f"LIST VAR {ups}\n", f"BEGIN LIST VAR {ups}")
         response = await self._read_util(f"END LIST VAR {ups}\n")
         return {
             parts[2]: parts[3].strip('"')
@@ -245,11 +241,7 @@ class AIONUTClient:
         # CMD <upsname> <cmdname>
         # ...
         # END LIST CMD <upsname>
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise(f"LIST CMD {ups}\n")
-        if not response.startswith(f"BEGIN LIST CMD {ups}"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        await self._write_command_or_raise(f"LIST CMD {ups}\n", f"BEGIN LIST CMD {ups}")
         response = await self._read_util(f"END LIST CMD {ups}\n")
         return {
             parts[2].strip('"')
