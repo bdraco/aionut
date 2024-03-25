@@ -124,6 +124,14 @@ async def test_list_command():
 
 
 @pytest.mark.asyncio
+async def test_list_command_wrong_response():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port)
+    with pytest.raises(NUTProtocolError):
+        await client.list_commands("wrong")
+
+
+@pytest.mark.asyncio
 async def test_list_ups_first_connection_drop():
     port = await make_fake_nut_server(drop_first_connection=True)
     client = make_nut_client(port)
@@ -220,6 +228,8 @@ async def make_fake_nut_server(
                 writer.write(b"BEGIN LIST CMD test\n")
                 writer.write(b'CMD test "valid"\n')
                 writer.write(b"END LIST CMD test\n")
+            elif command.startswith(b"LIST CMD wrong"):
+                writer.write(b"OK\n")
             elif command.startswith(b"INSTCMD test no_response"):
                 pass
             elif command.startswith(b"INSTCMD test invalid"):
