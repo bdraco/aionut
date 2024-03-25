@@ -34,6 +34,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
         async with self._operation_lock:
             if self._shutdown:
                 raise NUTShutdownError("Client has been shut down")
+
             for attempt in range(2):
                 try:
                     if not self._connected:
