@@ -203,8 +203,6 @@ class AIONUTClient:
         if not response.startswith("BEGIN LIST UPS"):
             raise NUTProtocolError(f"Unexpected response: {response!r}")
         response = await self._read_util("END LIST UPS\n")
-        if not response.startswith("UPS"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[1]: parts[2].strip('"')
             for line in response.splitlines()
