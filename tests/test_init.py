@@ -9,6 +9,7 @@ import pytest
 from aionut import (
     AIONUTClient,
     NUTCommandError,
+    NUTConnectionClosedError,
     NUTError,
     NUTLoginError,
     NUTProtocolError,
@@ -113,11 +114,19 @@ async def test_list_command():
 
 
 @pytest.mark.asyncio
-async def test_list_ups_connection_drop():
+async def test_list_ups_first_connection_drop():
     port = await make_fake_nut_server(drop_first_connection=True)
     client = make_nut_client(port)
     upses = await client.list_ups()
     assert upses == {"test": "bob"}
+
+
+@pytest.mark.asyncio
+async def test_list_ups_connection_drop():
+    port = await make_fake_nut_server(drop_connection=True)
+    client = make_nut_client(port)
+    with pytest.raises(NUTConnectionClosedError):
+        await client.list_ups()
 
 
 @pytest.mark.asyncio
@@ -143,6 +152,7 @@ async def make_fake_nut_server(
     bad_password: bool = False,
     late_auth_failed: bool = False,
     drop_first_connection: bool = False,
+    drop_connection: bool = False,
 ) -> int:
 
     dropped_connection = False
@@ -155,7 +165,7 @@ async def make_fake_nut_server(
             command = await reader.readline()
             if command == b"":
                 break
-            if drop_first_connection and not dropped_connection:
+            if drop_connection or (drop_first_connection and not dropped_connection):
                 dropped_connection = True
                 break
             if command.startswith(b"USERNAME"):
