@@ -123,10 +123,10 @@ class AIONUTClient:
                 self._reader, self._writer = await asyncio.open_connection(
                     self.host, self.port
                 )
-            if self.username is not None:
+            if self.username:
                 await self._write_command_or_raise(f"USERNAME {self.username}\n")
 
-            if self.password is not None:
+            if self.password:
                 await self._write_command_or_raise(f"PASSWORD {self.password}\n")
 
             self._connected = True
