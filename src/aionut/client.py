@@ -146,7 +146,6 @@ class AIONUTClient:
         """Write a command, read a response from the NUT server or raise an error."""
         if TYPE_CHECKING:
             assert self._writer is not None
-        if TYPE_CHECKING:
             assert self._reader is not None
         outgoing = data.encode("ascii")
         _LOGGER.debug("[%s:%s] Sending: %s", self.host, self.port, outgoing)
