@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.3.1 (2024-03-25)
+
+### Fix
+
+- Add missing coverage (#17) ([`b8e2bbd`](https://github.com/bdraco/aionut/commit/b8e2bbd98919391b5edec7a508b7991e4e6bb488))
+
 ## v4.3.0 (2024-03-25)
 
 ### Feature
