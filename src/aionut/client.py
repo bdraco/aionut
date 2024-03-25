@@ -42,10 +42,20 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                 except NUTConnectionClosedError:
                     self.disconnect()
                     if attempt == 1:
+                        _LOGGER.debug(
+                            "[%s:%s] Connection closed, already retried",
+                            self.host,
+                            self.port,
+                        )
                         raise
                     _LOGGER.debug(
                         "[%s:%s] Connection closed, retrying", self.host, self.port
                     )
+                except NUTCommandError as ex:
+                    _LOGGER.debug(
+                        "[%s:%s] NUTCommandError: %s", self.host, self.port, ex
+                    )
+                    raise
                 except NUTError as ex:
                     _LOGGER.debug("[%s:%s] NUTError: %s", self.host, self.port, ex)
                     self.disconnect()
@@ -53,6 +63,12 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                 except RETRY_ERRORS as err:
                     self.disconnect()
                     if attempt == 1:
+                        _LOGGER.debug(
+                            "[%s:%s] Error: %s, already retried",
+                            self.host,
+                            self.port,
+                            err,
+                        )
                         raise map_exception(err)(str(err)) from err
                     _LOGGER.debug(
                         "[%s:%s] Error: %s, retrying", self.host, self.port, err
@@ -73,7 +89,7 @@ class AIONUTClient:
         port: int = 3493,
         username: str | None = None,
         password: str | None = None,
-        timeout: int = 5,
+        timeout: float = 5.0,
         persistent: bool = True,
     ) -> None:
         """Initialize the NUT client."""
