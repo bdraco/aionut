@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.3.2 (2024-03-25)
+
+### Fix
+
+- Remove duplicate code (#18) ([`d7e82ef`](https://github.com/bdraco/aionut/commit/d7e82ef7c0d10c252a864569a340332de3767096))
+
 ## v4.3.1 (2024-03-25)
 
 ### Fix
