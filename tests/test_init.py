@@ -12,6 +12,7 @@ from aionut import (
     NUTError,
     NUTLoginError,
     NUTProtocolError,
+    NUTTimeoutError,
 )
 
 _LOGGER = logging.getLogger("aionut")
@@ -129,6 +130,14 @@ async def test_run_command():
     assert await client.run_command("test", "valid") == "OK"
 
 
+@pytest.mark.asyncio
+async def test_timeout():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port)
+    with pytest.raises(NUTTimeoutError):
+        await client.run_command("test", "no_response")
+
+
 async def make_fake_nut_server(
     bad_username: bool = False,
     bad_password: bool = False,
@@ -174,6 +183,8 @@ async def make_fake_nut_server(
                 writer.write(b"BEGIN LIST CMD test\n")
                 writer.write(b'CMD test "valid"\n')
                 writer.write(b"END LIST CMD test\n")
+            elif command.startswith(b"INSTCMD test no_response"):
+                pass
             elif command.startswith(b"INSTCMD test invalid"):
                 writer.write(b"ERR UNKNOWN-COMMAND\n")
             elif command.startswith(b"INSTCMD test valid"):
