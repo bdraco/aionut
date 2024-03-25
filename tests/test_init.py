@@ -58,9 +58,11 @@ async def cleanup():
     _SERVERS.clear()
 
 
-def make_nut_client(port: int) -> AIONUTClient:
+def make_nut_client(
+    port: int, username: str | None = "test", password: str | None = ""
+) -> AIONUTClient:
     client = AIONUTClient(
-        host="localhost", port=port, username="test", password="", timeout=0.1
+        host="localhost", port=port, username=username, password=password, timeout=0.1
     )
     _CLIENTS.add(client)
     return client
@@ -72,6 +74,13 @@ async def test_auth_late_auth_failure():
     client = make_nut_client(port)
     with pytest.raises(NUTLoginError, match="LIST"):
         await client.list_ups()
+
+
+@pytest.mark.asyncio
+async def test_no_auth():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port, username=None, password=None)
+    await client.list_ups()
 
 
 @pytest.mark.asyncio
