@@ -169,7 +169,7 @@ class AIONUTClient:
         if expected_starts_with is not None and not decoded.startswith(
             expected_starts_with
         ):
-            raise NUTProtocolError(f"Unexpected response: {decoded!r}")
+            raise NUTProtocolError(f"Unexpected response: {decoded}")
         return decoded
 
     async def _read_util(self, data: str) -> str:
