@@ -34,6 +34,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
         async with self._operation_lock:
             if self._shutdown:
                 raise NUTShutdownError("Client has been shut down")
+
             for attempt in range(2):
                 try:
                     if not self._connected:
@@ -42,10 +43,20 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                 except NUTConnectionClosedError:
                     self.disconnect()
                     if attempt == 1:
+                        _LOGGER.debug(
+                            "[%s:%s] Connection closed, already retried",
+                            self.host,
+                            self.port,
+                        )
                         raise
                     _LOGGER.debug(
                         "[%s:%s] Connection closed, retrying", self.host, self.port
                     )
+                except NUTCommandError as ex:
+                    _LOGGER.debug(
+                        "[%s:%s] NUTCommandError: %s", self.host, self.port, ex
+                    )
+                    raise
                 except NUTError as ex:
                     _LOGGER.debug("[%s:%s] NUTError: %s", self.host, self.port, ex)
                     self.disconnect()
@@ -53,13 +64,19 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                 except RETRY_ERRORS as err:
                     self.disconnect()
                     if attempt == 1:
+                        _LOGGER.debug(
+                            "[%s:%s] Error: %s, already retried",
+                            self.host,
+                            self.port,
+                            err,
+                        )
                         raise map_exception(err)(str(err)) from err
                     _LOGGER.debug(
                         "[%s:%s] Error: %s, retrying", self.host, self.port, err
                     )
-
-            if not self._persistent:
-                self.disconnect()
+                finally:
+                    if not self._persistent:
+                        self.disconnect()
 
     return cast(WrapFuncType, _async_connected_operation_wrap)
 
@@ -73,7 +90,7 @@ class AIONUTClient:
         port: int = 3493,
         username: str | None = None,
         password: str | None = None,
-        timeout: int = 5,
+        timeout: float = 5.0,
         persistent: bool = True,
     ) -> None:
         """Initialize the NUT client."""
@@ -102,18 +119,17 @@ class AIONUTClient:
 
     async def _connect(self) -> None:
         """Connect to the NUT server."""
-        if not self._connected:
-            async with asyncio.timeout(self.timeout):
-                self._reader, self._writer = await asyncio.open_connection(
-                    self.host, self.port
-                )
-            if self.username is not None:
-                await self._write_command_or_raise(f"USERNAME {self.username}\n")
+        async with asyncio.timeout(self.timeout):
+            self._reader, self._writer = await asyncio.open_connection(
+                self.host, self.port
+            )
+        if self.username is not None:
+            await self._write_command_or_raise(f"USERNAME {self.username}\n")
 
-            if self.password is not None:
-                await self._write_command_or_raise(f"PASSWORD {self.password}\n")
+        if self.password is not None:
+            await self._write_command_or_raise(f"PASSWORD {self.password}\n")
 
-            self._connected = True
+        self._connected = True
 
     def disconnect(self) -> None:
         """Disconnect from the NUT server."""
@@ -124,7 +140,9 @@ class AIONUTClient:
             self._writer = None
             self._reader = None
 
-    async def _write_command_or_raise(self, data: str) -> str:
+    async def _write_command_or_raise(
+        self, data: str, expected_starts_with: str | None = None
+    ) -> str:
         """Write a command, read a response from the NUT server or raise an error."""
         if TYPE_CHECKING:
             assert self._writer is not None
@@ -147,6 +165,10 @@ class AIONUTClient:
                 NUTLoginError if response.startswith(b"ERR ACCESS") else NUTCommandError
             )
             raise cls(f"Error running: {redacted_command.strip()}: {error}")
+        if expected_starts_with is not None and not decoded.startswith(
+            expected_starts_with
+        ):
+            raise NUTProtocolError(f"Unexpected response: {decoded}")
         return decoded
 
     async def _read_util(self, data: str) -> str:
@@ -163,11 +185,9 @@ class AIONUTClient:
         """Get the description of a UPS."""
         # Send: GET UPSDESC <upsname>
         # Return: UPSDESC <upsname> <description>
-        response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n")
-        if not response.startswith("UPSDESC"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        response = await self._write_command_or_raise(f"GET UPSDESC {ups}\n", "UPSDESC")
         _, _, description = response.split(" ", 2)
-        return description
+        return description.strip('\n"')
 
     @connected_operation
     async def list_ups(self) -> dict[str, str]:
@@ -181,14 +201,8 @@ class AIONUTClient:
         # UPS <upsname> "<description>"
         # ...
         # END LIST UPS
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise("LIST UPS\n")
-        if not response.startswith("BEGIN LIST UPS"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
+        await self._write_command_or_raise("LIST UPS\n", "BEGIN LIST UPS")
         response = await self._read_util("END LIST UPS\n")
-        if not response.startswith("UPS"):
-            raise NUTProtocolError(f"Unexpected response: {response!r}")
         return {
             parts[1]: parts[2].strip('"')
             for line in response.splitlines()
@@ -207,11 +221,7 @@ class AIONUTClient:
         # VAR <upsname> <varname> "<value>"
         # ...
         # END LIST VAR <upsname>
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise(f"LIST VAR {ups}\n")
-        if not response.startswith(f"BEGIN LIST VAR {ups}"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        await self._write_command_or_raise(f"LIST VAR {ups}\n", f"BEGIN LIST VAR {ups}")
         response = await self._read_util(f"END LIST VAR {ups}\n")
         return {
             parts[2]: parts[3].strip('"')
@@ -231,11 +241,7 @@ class AIONUTClient:
         # CMD <upsname> <cmdname>
         # ...
         # END LIST CMD <upsname>
-        if TYPE_CHECKING:
-            assert self._reader is not None
-        response = await self._write_command_or_raise(f"LIST CMD {ups}\n")
-        if not response.startswith(f"BEGIN LIST CMD {ups}"):
-            raise NUTProtocolError(f"Unexpected response: {response}")
+        await self._write_command_or_raise(f"LIST CMD {ups}\n", f"BEGIN LIST CMD {ups}")
         response = await self._read_util(f"END LIST CMD {ups}\n")
         return {
             parts[2].strip('"')
