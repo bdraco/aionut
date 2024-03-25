@@ -35,7 +35,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
             if self._shutdown:
                 raise NUTShutdownError("Client has been shut down")
 
-            for attempt in range(2):
+            for attempt in range(2):  # pragma: no branch
                 try:
                     if not self._connected:
                         await self._connect()
@@ -76,7 +76,7 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                     )
                 finally:
                     if not self._persistent:
-                        self.disconnect()
+                        self.disconnect()  # pragma: no branch
 
     return cast(WrapFuncType, _async_connected_operation_wrap)
 
