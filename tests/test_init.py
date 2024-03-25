@@ -116,6 +116,14 @@ async def test_list_vars():
 
 
 @pytest.mark.asyncio
+async def test_list_vars_wrong_response():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port)
+    with pytest.raises(NUTProtocolError):
+        await client.list_vars("wrong")
+
+
+@pytest.mark.asyncio
 async def test_list_command():
     port = await make_fake_nut_server()
     client = make_nut_client(port)
@@ -220,16 +228,18 @@ async def make_fake_nut_server(
                 writer.write(b"BEGIN LIST UPS\n")
                 writer.write(b'UPS test "bob"\n')
                 writer.write(b"END LIST UPS\n")
+            elif command.startswith(b"LIST VAR wrong"):
+                writer.write(b"OK\n")
             elif command.startswith(b"LIST VAR"):
                 writer.write(b"BEGIN LIST VAR test\n")
                 writer.write(b'VAR test x.y "z"\n')
                 writer.write(b"END LIST VAR test\n")
+            elif command.startswith(b"LIST CMD wrong"):
+                writer.write(b"OK\n")
             elif command.startswith(b"LIST CMD"):
                 writer.write(b"BEGIN LIST CMD test\n")
                 writer.write(b'CMD test "valid"\n')
                 writer.write(b"END LIST CMD test\n")
-            elif command.startswith(b"LIST CMD wrong"):
-                writer.write(b"OK\n")
             elif command.startswith(b"INSTCMD test no_response"):
                 pass
             elif command.startswith(b"INSTCMD test invalid"):
