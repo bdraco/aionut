@@ -13,6 +13,7 @@ from aionut import (
     NUTError,
     NUTLoginError,
     NUTProtocolError,
+    NUTShutdownError,
     NUTTimeoutError,
 )
 
@@ -140,11 +141,27 @@ async def test_run_command():
 
 
 @pytest.mark.asyncio
+async def test_description():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port)
+    assert await client.description("test") == "demo ups"
+
+
+@pytest.mark.asyncio
 async def test_timeout():
     port = await make_fake_nut_server()
     client = make_nut_client(port)
     with pytest.raises(NUTTimeoutError):
         await client.run_command("test", "no_response")
+
+
+@pytest.mark.asyncio
+async def test_use_after_shutdown():
+    port = await make_fake_nut_server()
+    client = make_nut_client(port)
+    client.shutdown()
+    with pytest.raises(NUTShutdownError):
+        await client.description("test")
 
 
 async def make_fake_nut_server(
@@ -199,6 +216,8 @@ async def make_fake_nut_server(
                 writer.write(b"ERR UNKNOWN-COMMAND\n")
             elif command.startswith(b"INSTCMD test valid"):
                 writer.write(b"OK\n")
+            elif command.startswith(b"GET UPSDESC test"):
+                writer.write(b'UPSDESC test "demo ups"\n')
             else:
                 writer.write(b"OK\n")
 

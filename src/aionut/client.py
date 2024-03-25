@@ -183,7 +183,7 @@ class AIONUTClient:
         if not response.startswith("UPSDESC"):
             raise NUTProtocolError(f"Unexpected response: {response}")
         _, _, description = response.split(" ", 2)
-        return description
+        return description.strip('\n"')
 
     @connected_operation
     async def list_ups(self) -> dict[str, str]:
