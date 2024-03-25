@@ -74,9 +74,9 @@ def connected_operation(func: WrapFuncType) -> WrapFuncType:
                     _LOGGER.debug(
                         "[%s:%s] Error: %s, retrying", self.host, self.port, err
                     )
-
-            if not self._persistent:
-                self.disconnect()
+                finally:
+                    if not self._persistent:
+                        self.disconnect()
 
     return cast(WrapFuncType, _async_connected_operation_wrap)
 
