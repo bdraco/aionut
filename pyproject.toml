@@ -3,7 +3,6 @@ name = "aionut"
 version = "4.3.2"
 description = "Asyncio Network UPS Tools"
 authors = ["J. Nick Koston <nick@koston.org>"]
-license = "Apache Software License 2.0"
 readme = "README.md"
 repository = "https://github.com/bdraco/aionut"
 documentation = "https://aionut.readthedocs.io"
@@ -13,6 +12,7 @@ classifiers = [
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
+    "License :: OSI Approved :: Apache Software License",
 ]
 packages = [
     { include = "aionut", from = "src" },
