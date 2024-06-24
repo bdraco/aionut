@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aionut"
-version = "4.3.2"
+version = "4.3.3"
 description = "Asyncio Network UPS Tools"
 authors = ["J. Nick Koston <nick@koston.org>"]
 readme = "README.md"

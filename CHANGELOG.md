@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.3.3 (2024-06-24)
+
+### Fix
+
+- Fix license classifier (#19) ([`a9c6b0b`](https://github.com/bdraco/aionut/commit/a9c6b0bfa8ab4e0ae02fed7f257c495c393d4e93))
+
 ## v4.3.2 (2024-03-25)
 
 ### Fix
