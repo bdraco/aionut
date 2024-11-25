@@ -18,13 +18,13 @@ from .exceptions import (
 
 __all__ = [
     "AIONUTClient",
-    "NUTError",
-    "NUTProtocolError",
-    "NUTLoginError",
     "NUTCommandError",
+    "NUTConnectionClosedError",
+    "NUTError",
+    "NUTLoginError",
     "NUTOSError",
+    "NUTProtocolError",
+    "NUTShutdownError",
     "NUTTimeoutError",
     "NUTValueError",
-    "NUTShutdownError",
-    "NUTConnectionClosedError",
 ]
