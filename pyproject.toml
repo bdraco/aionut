@@ -1,26 +1,30 @@
-[tool.poetry]
+[project]
 name = "aionut"
 version = "4.3.3"
+license = "Apache-2.0"
 description = "Asyncio Network UPS Tools"
-authors = ["J. Nick Koston <nick@koston.org>"]
+authors = [{ name = "J. Nick Koston", email = "nick@koston.org" }]
 readme = "README.md"
-repository = "https://github.com/bdraco/aionut"
-documentation = "https://aionut.readthedocs.io"
+requires-python = ">=3.11"
+dynamic = ["classifiers", "dependencies", "optional-dependencies"]
+
+[project.urls]
+"Repository" = "https://github.com/bdraco/aionut"
+"Documentation" = "https://aionut.readthedocs.io"
+"Bug Tracker" = "https://github.com/bdraco/aionut/issues"
+"Changelog" = "https://github.com/bdraco/aionut/blob/main/CHANGELOG.md"
+
+[tool.poetry]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: OS Independent",
     "Topic :: Software Development :: Libraries",
-    "License :: OSI Approved :: Apache Software License",
 ]
 packages = [
     { include = "aionut", from = "src" },
 ]
-
-[tool.poetry.urls]
-"Bug Tracker" = "https://github.com/bdraco/aionut/issues"
-"Changelog" = "https://github.com/bdraco/aionut/blob/main/CHANGELOG.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -40,7 +44,7 @@ furo = { version = ">=2023.5.20", python = ">=3.11"}
 sphinx-autobuild = { version = ">=2024.0.0", python = ">=3.11"}
 
 [tool.semantic_release]
-version_toml = ["pyproject.toml:tool.poetry.version"]
+version_toml = ["pyproject.toml:project.version"]
 version_variables = [
     "src/aionut/__init__.py:__version__",
     "docs/conf.py:release",
@@ -144,5 +148,5 @@ module = "docs.*"
 ignore_errors = true
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=2.0.0"]
 build-backend = "poetry.core.masonry.api"
