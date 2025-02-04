@@ -1,5 +1,11 @@
 # Changelog
 
+## v4.3.4 (2025-02-04)
+
+### Fix
+
+- Update poetry to v2 + add license to metadata (#53) ([`d50a879`](https://github.com/bdraco/aionut/commit/d50a879443be4e5704146080a45d76f64e7df303))
+
 ## v4.3.3 (2024-06-24)
 
 ### Fix

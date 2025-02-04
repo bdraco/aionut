@@ -7,7 +7,7 @@
 project = "aionut"
 copyright = "2024, J. Nick Koston"
 author = "J. Nick Koston"
-release = "4.3.3"
+release = "4.3.4"
 
 # General configuration
 extensions = [
