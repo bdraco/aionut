@@ -108,6 +108,20 @@ async def test_auth_bad_password():
 
 
 @pytest.mark.asyncio
+async def test_credentials_not_logged(caplog: pytest.LogCaptureFixture) -> None:
+    port = await make_fake_nut_server()
+    client = make_nut_client(
+        port, username="secretuser", password="secretpass"  # noqa: S106
+    )
+    with caplog.at_level(logging.DEBUG, logger="aionut"):
+        await client.list_ups()
+    assert "Sending: USERNAME ***" in caplog.text
+    assert "Sending: PASSWORD ***" in caplog.text
+    assert "secretuser" not in caplog.text
+    assert "secretpass" not in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_list_ups():
     port = await make_fake_nut_server()
     client = make_nut_client(port)
