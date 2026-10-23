@@ -148,7 +148,11 @@ class AIONUTClient:
             assert self._writer is not None
             assert self._reader is not None
         outgoing = data.encode("ascii")
-        _LOGGER.debug("[%s:%s] Sending: %s", self.host, self.port, outgoing)
+        command = data.split(" ", 1)[0]
+        if command in _REDACT_COMMANDS:
+            _LOGGER.debug("[%s:%s] Sending: %s ***", self.host, self.port, command)
+        else:
+            _LOGGER.debug("[%s:%s] Sending: %s", self.host, self.port, outgoing)
         self._writer.write(outgoing)
         async with asyncio.timeout(self.timeout):
             response = await self._reader.readline()
@@ -157,7 +161,6 @@ class AIONUTClient:
             raise NUTConnectionClosedError("Connection closed by server")
         decoded = response.decode("ascii")
         if response.startswith(b"ERR"):
-            command = data.split(" ", 1)[0]
             redacted_command = command if command in _REDACT_COMMANDS else data
             error = decoded.strip()
             cls = (
